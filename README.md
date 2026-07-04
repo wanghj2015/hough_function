@@ -51,7 +51,11 @@ components: DW1 (`s=1, sigma=0.5`), SW2 (`s=2, sigma=1.0`), TW3 (`s=3, sigma=1.5
 
 > Note: the Python `utils.py` helpers (`lgwt`, `pmn_polynomial_value`,
 > `central_diff`) were referenced but not shipped with the original MATLAB;
-> they are reimplemented here.
+> they are reimplemented here. `utils.py` also provides `jacobi_eigenvalue`,
+> a port of Burkardt's Jacobi rotation eigensolver, which `nalp_hough` uses
+> instead of `numpy.linalg.eigh` for the symmetric F1/F2 matrices — the
+> paper cites this algorithm specifically, and it's what reproduces the
+> published figures' eigenvector sign convention (see `docs/reference.md`).
 
 ## Licence
 

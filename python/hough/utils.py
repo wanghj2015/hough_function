@@ -81,6 +81,89 @@ def _factorial(k):
     return result
 
 
+def jacobi_eigenvalue(a_in, it_max=100):
+    """Classical cyclic Jacobi rotation eigensolver for a real symmetric
+    matrix, faithfully ported from John Burkardt's jacobi_eigenvalue.m
+    (https://people.sc.fsu.edu/~jburkardt/m_src/jacobi_eigenvalue/), the
+    algorithm the paper cites for solving the F1/F2 matrices.
+
+    Unlike LAPACK's eig/eigh (used by MATLAB's `eig` and NumPy's `eigh`),
+    Jacobi rotations start from V = identity and build up the eigenvectors
+    through an explicit, deterministic sequence of plane rotations. That
+    gauge is what reproduces the published PDF's curve signs -- verified
+    against every mode in Figs. 1-3 by pixel-level digitization of the paper
+    -- whereas eig/eigh's gauge only sometimes agrees with it. See
+    docs/reference.md.
+
+    Returns (eigenvalues, eigenvectors) with eigenvectors as columns,
+    unsorted (same convention as numpy.linalg.eigh).
+    """
+    n = a_in.shape[0]
+    a = a_in.copy()
+    v = np.eye(n)
+    d = np.diag(a).copy()
+    bw = d.copy()
+    zw = np.zeros(n)
+    it_num = 0
+
+    while it_num < it_max:
+        it_num += 1
+        thresh = np.sqrt(np.sum(np.triu(a, 1) ** 2)) / (4 * n)
+        if thresh == 0.0:
+            break
+
+        for p in range(n):
+            for q in range(p + 1, n):
+                gapq = 10.0 * abs(a[p, q])
+                termp = gapq + abs(d[p])
+                termq = gapq + abs(d[q])
+
+                if 4 < it_num and termp == abs(d[p]) and termq == abs(d[q]):
+                    a[p, q] = 0.0
+                elif thresh <= abs(a[p, q]):
+                    h = d[q] - d[p]
+                    term = abs(h) + gapq
+                    if term == abs(h):
+                        t = a[p, q] / h
+                    else:
+                        theta = 0.5 * h / a[p, q]
+                        t = 1.0 / (abs(theta) + np.sqrt(1.0 + theta * theta))
+                        if theta < 0.0:
+                            t = -t
+                    c = 1.0 / np.sqrt(1.0 + t * t)
+                    s = t * c
+                    tau = s / (1.0 + c)
+                    h = t * a[p, q]
+                    zw[p] -= h
+                    zw[q] += h
+                    d[p] -= h
+                    d[q] += h
+                    a[p, q] = 0.0
+
+                    for i in range(p):
+                        g, h = a[i, p], a[i, q]
+                        a[i, p] = g - s * (h + g * tau)
+                        a[i, q] = h + s * (g - h * tau)
+                    for i in range(p + 1, q):
+                        g, h = a[p, i], a[i, q]
+                        a[p, i] = g - s * (h + g * tau)
+                        a[i, q] = h + s * (g - h * tau)
+                    for i in range(q + 1, n):
+                        g, h = a[p, i], a[q, i]
+                        a[p, i] = g - s * (h + g * tau)
+                        a[q, i] = h + s * (g - h * tau)
+                    for i in range(n):
+                        g, h = v[i, p], v[i, q]
+                        v[i, p] = g - s * (h + g * tau)
+                        v[i, q] = h + s * (g - h * tau)
+
+        bw += zw
+        d[:] = bw
+        zw[:] = 0.0
+
+    return d.copy(), v
+
+
 def central_diff(f, x):
     """Central-difference derivative of columns of f with respect to x.
 

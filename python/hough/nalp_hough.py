@@ -10,7 +10,7 @@ from collections import namedtuple
 
 import numpy as np
 
-from .utils import lgwt, pmn_polynomial_value, central_diff
+from .utils import lgwt, pmn_polynomial_value, central_diff, jacobi_eigenvalue
 
 # Physical constants
 A_EARTH = 6.370e6                       # Earth radius (m)
@@ -87,14 +87,18 @@ def compute(s=1, sigma=0.5, N=62, nlat=94):
             f2[i, i + 1] = L[2 * i + 1]
             f2[i + 1, i] = L[2 * i + 1]
 
-    # symmetric modes (f1 is symmetric -> use eigh for a real spectrum)
-    lamb1, v1 = np.linalg.eigh(f1)
+    # symmetric modes -- solved via Jacobi rotations, as the paper specifies
+    # (Burkardt 2013), not a generic LAPACK eig/eigh call: the two give the
+    # same eigenvalues but a different (still valid) eigenvector sign gauge,
+    # and only the Jacobi gauge reproduces the published figures. See
+    # docs/reference.md.
+    lamb1, v1 = jacobi_eigenvalue(f1)
     ii = np.argsort(-lamb1)
     lamb1 = lamb1[ii]
     v1 = v1[:, ii]
 
-    # anti-symmetric modes (f2 is symmetric -> use eigh for a real spectrum)
-    lamb2, v2 = np.linalg.eigh(f2)
+    # anti-symmetric modes
+    lamb2, v2 = jacobi_eigenvalue(f2)
     ii = np.argsort(-lamb2)
     lamb2 = lamb2[ii]
     v2 = v2[:, ii]
@@ -215,12 +219,21 @@ def solve_parity(s=1, sigma=0.5, N=62, nlat=94):
 
     prs = pmn_polynomial_value(nlat, N + s, s, x)
 
-    south = np.argmin(x)   # grid point nearest the south pole
-
     def family(fmat, degree0):
         # degree0 = Legendre degree of the gravest mode of this family
         # (s for symmetric, s+1 for anti-symmetric).
-        lamb, v = np.linalg.eigh(fmat)
+        #
+        # Solved via Jacobi rotations (Burkardt 2013), matching the method
+        # the paper specifies for these symmetric matrices, rather than a
+        # generic LAPACK eig/eigh call. Eigenvector sign is only defined up
+        # to a gauge; eig/eigh (MATLAB and NumPy agree with each other here,
+        # verified against a real MATLAB R2024a run) pick a different, only
+        # sometimes-matching gauge than the published PDF. Jacobi rotations
+        # -- which build the eigenvectors explicitly from the identity
+        # through a deterministic sequence of plane rotations -- reproduce
+        # the paper's sign for essentially every mode checked by pixel-level
+        # digitization of Figs. 1-3. See docs/reference.md.
+        lamb, v = jacobi_eigenvalue(fmat)
         order = np.argsort(-lamb)
         lamb, v = lamb[order], v[:, order]
         hough = np.zeros((nlat, N2))
@@ -229,23 +242,6 @@ def solve_parity(s=1, sigma=0.5, N=62, nlat=94):
                 hough[:, i] += v[j, i] * prs[:, degree0 + 2 * j]
         with np.errstate(over="ignore"):
             h = 4.0 * A_EARTH ** 2 * OMEGA ** 2 / G * lamb / 1000.0
-
-        # Sign convention (an eigenvector is only fixed up to a sign; the sign
-        # is a physically meaningless gauge). Applied uniformly, not as
-        # per-curve flips: fix each mode's outermost lobe (its approach to the
-        # south pole) to the natural pole sign of that family's leading
-        # associated Legendre function, sign(P_{degree0}^s) = (-1)^degree0.
-        # This matches the paper's symmetric modes in every panel and its
-        # low-order anti-symmetric modes; some higher anti-symmetric modes
-        # differ from the PDF because the paper's anti-symmetric signs are just
-        # MATLAB eig's raw output and follow no consistent rule. See
-        # docs/reference.md.
-        want = np.sign(prs[south, degree0])
-        for i in range(N2):
-            si = np.sign(hough[south, i])
-            if si != 0 and si != want:
-                hough[:, i] *= -1.0
-                v[:, i] *= -1.0
 
         u, vwind = _winds(hough, x, s, sigma)
         degree = degree0 + 2 * np.arange(N2)  # conventional degree per mode

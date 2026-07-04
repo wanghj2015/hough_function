@@ -57,33 +57,38 @@ Notes:
   the natural L² normalization.
 - **Sign convention.** An eigenvector is only defined up to a sign, and that
   sign is a physically meaningless gauge (a Hough function and its negative are
-  the same mode). `solve_parity` fixes each mode's outermost lobe (its approach
-  to the south pole) to the natural pole sign of that family's leading
-  associated Legendre function, `sign(P^s_{degree0}) = (-1)^degree0`. This is a
-  single deterministic rule applied uniformly — not per-curve flipping.
+  the same mode). Both `compute()` and `solve_parity()` solve the symmetric
+  F1/F2 matrices with **Jacobi rotations** (`hough.utils.jacobi_eigenvalue`, a
+  faithful port of Burkardt's `jacobi_eigenvalue.m`), not `numpy.linalg.eigh`
+  — matching the algorithm the paper's text actually cites for these matrices
+  (Sect. 2.1: "The Fortran 90 source code of the Jacobi eigenvalue algorithm
+  implemented by Burkardt (2013) can be used to solve the two symmetric
+  matrix eigenvalue problems"), even though the MATLAB listing in Appendix B1
+  shows a plain `eig()` call.
 
-  What it does and does not match in the paper:
-  - **Symmetric** modes: matches the published signs in every panel checked
-    (Figs 1a/1b, 2a, 3a) — their pole signs really do follow `(-1)^s`.
-  - **Anti-symmetric** modes: matches the low-order / propagating modes, but
-    some higher modes differ from the PDF (e.g. `[+2]`,`[+4]` in Fig 1c;
-    `[2,7]` in Fig 2b/d/f). The paper's anti-symmetric signs follow *no*
-    consistent rule (DW1 `+,-,-`; SW2 `-,-,+`; TW3 `+,+,+`) — they are just
-    MATLAB `eig`'s raw output — so no clean convention can reproduce them all.
+  This matters because eig/eigh and Jacobi rotations, while mathematically
+  equivalent (same eigenvalues), pick *different* eigenvector sign gauges:
+  eig/eigh normalize post hoc (e.g. largest-magnitude component positive),
+  while Jacobi rotations build each eigenvector explicitly, sweep by sweep,
+  starting from the identity matrix. We verified:
+  - A real MATLAB R2024a run of the unmodified `nalp_hough.m`/`cheb_hough.m`
+    matches NumPy's `eig`/`eigh` bit-for-bit (grid, eigenvalues, mode shapes,
+    wind components) for DW1/SW2/TW3 — so eig/eigh's gauge is *not* a
+    MATLAB-vs-NumPy platform artifact; a prior version of this note blamed a
+    mismatch on Octave specifically, but real MATLAB agrees with NumPy.
+  - That shared eig/eigh gauge nonetheless disagrees with the published PDF
+    for roughly half the modes in Figs. 1–3 (verified by extracting each
+    curve's actual pixels from the PDF by color and comparing sign at a dozen
+    reference latitudes).
+  - Switching to Jacobi rotations reproduces the published sign for every mode
+    checked across DW1, SW2 and TW3 — confirmed against the PDF and against
+    the regenerated `docs/fig*.png`.
 
-  Shapes, node counts and amplitudes are correct throughout; only some
-  anti-symmetric curve *signs* differ from the PDF, which is immaterial.
-  (`compute()` imposes no convention at all, mirroring the MATLAB code; only
-  `solve_parity`, used for the figures, applies this one.)
-
-  The paper's signs are not reproducible by any tool but the authors' exact
-  MATLAB build: running the original `nalp_hough.m` through Octave (with `eig`
-  and the original indexing) yields yet another gauge — it flips a *different*
-  set of curves than NumPy (e.g. Octave matches `[+3]`/`[+4]` but flips
-  `[-5]`/`[+2]` in Fig 1). Eigenvector signs are LAPACK-implementation
-  dependent (MATLAB != Octave != NumPy), so per-curve sign matching is
-  impossible in general; the convention above is the closest deterministic,
-  principled choice.
+  Earlier versions of this code (and of this note) tried to patch the
+  eig/eigh output after the fact — first a "south-pole sign" heuristic, later
+  a hardcoded per-mode flip table — because no simple formula was found. Both
+  were replaced once it became clear the discrepancy was a solver-*algorithm*
+  choice, not a mode-by-mode gauge to guess at.
 - The parity solver used by the figures is
   `hough.nalp_hough.solve_parity(s, sigma, N, nlat)`, which returns the
   symmetric and anti-symmetric families separately.
