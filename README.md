@@ -8,7 +8,7 @@ Code for computing Hough functions from the paper:
 
 This code is archived on Zenodo:
 
-[![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.21201408.svg)](https://doi.org/10.5281/zenodo.21201408)
+[![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.21201407.svg)](https://doi.org/10.5281/zenodo.21201407)
 
 Three independent implementations are provided: the original **MATLAB**,
 a **Python** port, and a **Fortran90** solver (CMake build). MATLAB/Python
