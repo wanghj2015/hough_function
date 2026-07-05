@@ -26,6 +26,7 @@ keywords:
 license: CC-BY-4.0
 version: 1.0.0
 date-released: '2026-07-04'
+doi: 10.5281/zenodo.21201408
 preferred-citation:
   type: article
   title: On computation of Hough functions
