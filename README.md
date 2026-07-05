@@ -6,6 +6,10 @@ Code for computing Hough functions from the paper:
 > functions. *Geoscientific Model Development*, 9(4), 1477–1488.
 > https://doi.org/10.5194/gmd-9-1477-2016
 
+This code is archived on Zenodo:
+
+[![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.21201408.svg)](https://doi.org/10.5281/zenodo.21201408)
+
 Three independent implementations are provided: the original **MATLAB**,
 a **Python** port, and a **Fortran90** solver (CMake build). MATLAB/Python
 each offer two solvers -- a **Chebyshev collocation** method and a
