@@ -1,4 +1,4 @@
-# Hough functions (Fortran)
+# Computation of Hough Functions (Fortran)
 
 Fortran90 solver for Hough functions from:
 

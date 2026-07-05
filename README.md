@@ -1,4 +1,4 @@
-# hough_function
+# Computation of Hough Functions
 
 Code for computing Hough functions from the paper:
 
@@ -6,9 +6,13 @@ Code for computing Hough functions from the paper:
 > functions. *Geoscientific Model Development*, 9(4), 1477–1488.
 > https://doi.org/10.5194/gmd-9-1477-2016
 
-Two independent solvers are provided in both MATLAB and Python: a **Chebyshev
-collocation** method and a **normalized associated Legendre polynomial (ALP)**
-method. They agree to ~4 significant figures on the physical equivalent depths.
+Three independent implementations are provided: the original **MATLAB**,
+a **Python** port, and a **Fortran90** solver (CMake build). MATLAB/Python
+each offer two solvers -- a **Chebyshev collocation** method and a
+**normalized associated Legendre polynomial (ALP)** method -- which agree
+to ~4 significant figures on the physical equivalent depths; the Fortran
+solver uses the normalized-ALP approach and reproduces the paper's
+published figures directly.
 
 ## Layout
 
@@ -26,6 +30,12 @@ python/                 Python port
   examples/plot_modes.py     Plot the leading modes (any tide)
   examples/paper_figures.py  Reproduce Figs 1-3 of the paper into docs/
   tests/test_cross_check.py  Assert both methods agree
+fortran/                Fortran90 solver (CMake build)
+  CMakeLists.txt        Build config; auto-detects LAPACK
+  src/hough_main.f90    CLI driver (--preset, --solver, --compare-solvers, ...)
+  src/eigensolvers.f90  Jacobi (default) + LAPACK dstev/dsyev/dsyevd, cross-checked
+  scripts/run_paper_cases.sh      Build + run dw1/sw2/tw3
+  scripts/plot_paper_figures.py   Reproduce Figs 1-3 from the Fortran output
 docs/reference.md       Background and parameter reference
 docs/fig1_dw1.png       Reproduced paper figures
 docs/fig2_sw2.png
@@ -56,6 +66,23 @@ components: DW1 (`s=1, sigma=0.5`), SW2 (`s=2, sigma=1.0`), TW3 (`s=3, sigma=1.5
 > instead of `numpy.linalg.eigh` for the symmetric F1/F2 matrices — the
 > paper cites this algorithm specifically, and it's what reproduces the
 > published figures' eigenvector sign convention (see `docs/reference.md`).
+
+## Fortran usage
+
+```bash
+cd fortran
+cmake -B build -S . && cmake --build build
+
+./build/hough_main --preset=dw1          # or sw2, tw3
+./build/hough_main -s 2 -f 1.0 --solver=dstev --compare-solvers
+./build/hough_main --help
+
+./scripts/run_paper_cases.sh             # build + run dw1/sw2/tw3
+python3 scripts/plot_paper_figures.py    # reproduce Figs 1-3 into output/
+```
+
+See [`fortran/README.md`](fortran/README.md) for details, including the
+`--compare-solvers` cross-check against LAPACK's dstev/dsyev/dsyevd.
 
 ## Licence
 
