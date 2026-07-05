@@ -1,0 +1,33 @@
+{
+  "title": "Computation of Hough Functions",
+  "description": "Code for computing Hough functions, providing three independent implementations (MATLAB, Python, and a Fortran90 CMake solver) with Chebyshev-collocation and normalized associated-Legendre-polynomial methods that reproduce the figures of Wang, Boyd & Akmaev (2016), Geoscientific Model Development 9, 1477-1488.",
+  "upload_type": "software",
+  "license": "cc-by-4.0",
+  "access_right": "open",
+  "creators": [
+    {
+      "name": "Wang, Houjun",
+      "orcid": "0000-0002-1462-5234"
+    }
+  ],
+  "keywords": [
+    "Hough functions",
+    "atmospheric tides",
+    "Laplace tidal equation",
+    "Chebyshev collocation",
+    "associated Legendre polynomials",
+    "equivalent depth"
+  ],
+  "related_identifiers": [
+    {
+      "identifier": "https://github.com/wanghj2015/hough_function",
+      "relation": "isSupplementTo",
+      "scheme": "url"
+    },
+    {
+      "identifier": "10.5194/gmd-9-1477-2016",
+      "relation": "isSupplementTo",
+      "scheme": "doi"
+    }
+  ]
+}
