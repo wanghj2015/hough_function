@@ -39,8 +39,8 @@ collocation discretization), which downstream code should ignore. See
 
 ## Reproduced figures
 
-`python/examples/paper_figures.py` regenerates Figures 1–3 of the paper with
-the normalized-ALP method and writes them here:
+`python/scripts/plot_paper_figures.py` regenerates Figures 1–3 of the paper
+with the normalized-ALP method and writes them here:
 
 | File | Paper figure | Content |
 |------|--------------|---------|
@@ -53,8 +53,9 @@ Notes:
   gravest first), negative index = Rossby (most negative depth first), `[0]` =
   the infinite-depth "missing" mode; odd indices are symmetric, even
   anti-symmetric.
-- Wind panels are normalized to unit peak (as in the paper); scalar panels use
-  the natural L² normalization.
+- Wind panels divide the k-th mode of a family by a fixed factor (3, 9, 16),
+  shown in the label as e.g. `[2,2]/3` (as in the paper's Fig. 2); scalar
+  panels use the natural L² normalization.
 - **Sign convention.** An eigenvector is only defined up to a sign, and that
   sign is a physically meaningless gauge (a Hough function and its negative are
   the same mode). Both `compute()` and `solve_parity()` solve the symmetric

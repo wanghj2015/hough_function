@@ -1,8 +1,8 @@
 """Plot the leading Hough modes computed by either method.
 
 Usage:
-    python -m examples.plot_modes            # Chebyshev method, DW1
-    python -m examples.plot_modes --method nalp --s 2 --sigma 1.0
+    python -m scripts.plot_modes            # Chebyshev method, DW1
+    python -m scripts.plot_modes --method nalp --s 2 --sigma 1.0
 
 Run from the ``python/`` directory (so ``hough`` is importable).
 """

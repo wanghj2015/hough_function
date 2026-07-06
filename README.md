@@ -25,22 +25,23 @@ matlab/                 Original MATLAB implementation
   cheb_boyd.m           Chebyshev differentiation matrices
   cheb_hough.m          Chebyshev collocation solver
   nalp_hough.m          Normalized-ALP solver
-python/                 Python port
+python/                 Python port (see python/README.md)
   hough/                Importable package
     cheb_boyd.py        Chebyshev differentiation matrices
     cheb_hough.py       Chebyshev collocation solver  (compute())
     nalp_hough.py       Normalized-ALP solver         (compute())
     utils.py            lgwt, pmn_polynomial_value, central_diff
-  examples/plot_modes.py     Plot the leading modes (any tide)
-  examples/paper_figures.py  Reproduce Figs 1-3 of the paper into docs/
-  tests/test_cross_check.py  Assert both methods agree
+  scripts/plot_modes.py       Plot the leading modes (any tide)
+  scripts/plot_uv_modes.py    Plot U/V wind modes for (1,-1) and (2,2)
+  scripts/plot_paper_figures.py  Reproduce Figs 1-3 of the paper into docs/
+  tests/test_cross_check.py    Assert both methods agree
 fortran/                Fortran90 solver (CMake build)
   CMakeLists.txt        Build config; auto-detects LAPACK
   src/hough_main.f90    CLI driver (--preset, --solver, --compare-solvers, ...)
   src/eigensolvers.f90  Jacobi (default) + LAPACK dstev/dsyev/dsyevd, cross-checked
   scripts/run_paper_cases.sh      Build + run dw1/sw2/tw3
   scripts/plot_paper_figures.py   Reproduce Figs 1-3 from the Fortran output
-docs/reference.md       Background and parameter reference
+docs/README.md       Background and parameter reference
 docs/fig1_dw1.png       Reproduced paper figures
 docs/fig2_sw2.png
 docs/fig3_tw3.png
@@ -54,22 +55,19 @@ cd python
 pip install -r requirements.txt
 
 python -c "from hough import cheb_hough; print(cheb_hough.compute().h[:6])"
-python -m examples.plot_modes --method nalp --s 1 --sigma 0.5
-python -m examples.paper_figures         # write Figs 1-3 into ../docs/
-pytest                                   # cross-check the two methods
+python -m scripts.plot_uv_modes         # U/V wind modes into ../docs/uv_modes.png
+python -m scripts.plot_paper_figures    # write Figs 1-3 into ../docs/
+pytest                                   # cross-check the two solvers
 ```
 
-`compute(s, sigma, N)` returns a `HoughResult` with fields `x`, `lamb`,
-`hough`, `hough_u`, `hough_v`, `h` (equivalent depth in km). Example tidal
-components: DW1 (`s=1, sigma=0.5`), SW2 (`s=2, sigma=1.0`), TW3 (`s=3, sigma=1.5`).
+`plot_uv_modes` uses the Chebyshev **spectral** derivative, so the DW1 `(1,-1)`
+winds stay smooth through the ±30° critical latitude and the poles — smoother
+than the Fortran `--wind=fd` finite-difference version, which kinks slightly
+there.
 
-> Note: the Python `utils.py` helpers (`lgwt`, `pmn_polynomial_value`,
-> `central_diff`) were referenced but not shipped with the original MATLAB;
-> they are reimplemented here. `utils.py` also provides `jacobi_eigenvalue`,
-> a port of Burkardt's Jacobi rotation eigensolver, which `nalp_hough` uses
-> instead of `numpy.linalg.eigh` for the symmetric F1/F2 matrices — the
-> paper cites this algorithm specifically, and it's what reproduces the
-> published figures' eigenvector sign convention (see `docs/reference.md`).
+See [`python/README.md`](python/README.md) for the full script and test
+reference, and the implementation notes (`utils.py` helpers, the Jacobi
+eigensolver, and cheb's L2-normalization).
 
 ## Fortran usage
 

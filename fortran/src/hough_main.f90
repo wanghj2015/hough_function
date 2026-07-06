@@ -23,6 +23,8 @@ integer            :: nn = 120             ! total modes (n2 = nn/2 per family)
 integer            :: n2
 character(len=16)  :: solver_name = 'jacobi'
 integer            :: solver_id
+character(len=16)  :: wind_method = 'auto'   ! auto | fd | groves
+logical            :: use_fd
 logical            :: compare_flag = .false.
 logical            :: verbose = .false.
 character(len=256) :: outfile = ''
@@ -56,6 +58,20 @@ if (solver_id /= SOLVER_JACOBI .and. .not. lapack_available()) then
   stop 1
 end if
 
+! Wind method: 'auto' picks fd for s=1 (where the Groves upward recurrence is
+! numerically unstable) and groves otherwise; can be forced with --wind.
+select case (trim(wind_method))
+case ('auto')
+  use_fd = (s == 1)
+case ('fd')
+  use_fd = .true.
+case ('groves')
+  use_fd = .false.
+case default
+  write(*,'(a,a,a)') 'ERROR: unknown --wind "', trim(wind_method), '" (choose auto, fd or groves)'
+  stop 1
+end select
+
 if (len_trim(outfile) == 0) then
   write(outfile,'(a,i0,a,f0.4,a)') 'output/hough_s', s, '_sigma', sigma, '.dat'
 end if
@@ -72,6 +88,11 @@ write(*,'(a,f0.4)')      '   normalized frequency sigma = ', sigma
 write(*,'(a,i0)')        '   Gauss latitudes  (nlat)   = ', nlat
 write(*,'(a,i0,a,i0,a)') '   modes per family (n2)     = ', n2, '  (', nn, ' total)'
 write(*,'(a,a)')         '   eigensolver                = ', trim(solver_name)
+if (use_fd) then
+  write(*,'(a,a)')       '   wind method                = fd (differentiate scalar mode)'
+else
+  write(*,'(a,a)')       '   wind method                = groves (coefficient recurrence)'
+end if
 write(*,'(a,a)')         '   output file                = ', trim(outfile)
 write(*,'(a)')           '=================================================================='
 
@@ -94,12 +115,18 @@ write(*,'(a)') ''
 write(*,'(a)') ' -- scalar modes --'
 call hough_mode(nlat, nn, n2, s, sigma, gx, gw, lambda, theta, solver_id, compare_flag)
 
-! Compute the zonal/meridional wind Hough modes. This re-solves the same
-! eigenproblem internally, so the solver comparison table (if requested)
-! is only printed once, above.
+! Compute the zonal/meridional wind Hough modes, either by differentiating
+! the scalar modes (fd -- stable for all s) or via the Groves coefficient
+! recurrence (groves -- fast, but unstable for s=1). The groves path
+! re-solves the same eigenproblem internally, so the solver comparison table
+! (if requested) is only printed once, above.
 write(*,'(a)') ''
 write(*,'(a)') ' -- wind (u,v) modes --'
-call hough_mode_uv(nlat, nn, n2, s, sigma, gx, gw, lambda, theta_u, theta_v, solver_id)
+if (use_fd) then
+  call theta_to_theta_uv(nlat, nn, s, sigma, gx, theta, theta_u, theta_v)
+else
+  call hough_mode_uv(nlat, nn, n2, s, sigma, gx, gw, lambda, theta_u, theta_v, solver_id)
+end if
 
 ! Sanity check: normalization of the u,v Hough modes
 table1 = 0.d0
@@ -196,6 +223,8 @@ contains
           read(val,*) nn
         case ('--solver')
           solver_name = trim(val)
+        case ('--wind')
+          wind_method = trim(val)
         case ('-o', '--output')
           outfile = trim(val)
         case ('--preset')
@@ -241,6 +270,8 @@ contains
     write(*,'(a)') '      --nlat=N         number of Gauss latitudes            (default: 94)'
     write(*,'(a)') '      --nn=N           total modes, must be even            (default: 120)'
     write(*,'(a)') '      --solver=NAME    jacobi | dstev | dsyev | dsyevd      (default: jacobi)'
+    write(*,'(a)') '      --wind=METHOD    auto | fd | groves                   (default: auto)'
+    write(*,'(a)') '                       auto = fd for s=1 (groves is unstable there), groves otherwise'
     write(*,'(a)') '      --compare-solvers  print an eigenvalue comparison across all available solvers'
     write(*,'(a)') '  -o, --output=PATH   output data file  (default: output/hough_s<S>_sigma<SIGMA>.dat)'
     write(*,'(a)') '  -v, --verbose        print extra diagnostic output'

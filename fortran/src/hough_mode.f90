@@ -248,7 +248,7 @@ endif
 
 ! A few (s, f) combinations have a genuine infinite equivalent-depth mode
 ! at this r (an expected physical feature -- the paper's "[0]" missing
-! mode -- not a bug; see docs/reference.md). Clamp to the largest finite
+! mode -- not a bug; see docs/README.md). Clamp to the largest finite
 ! double, matching the Python port's identical guard, so every eigensolver
 ! can operate on a literal matrix; the eigenvalue/depth still overflows to
 ! Infinity downstream in the usual floating-point way.
@@ -280,7 +280,7 @@ enddo
 
 ! F1, F2 are symmetric tridiagonal; solve with the requested eigensolver
 ! (default: Jacobi rotations, matching the paper's sign convention -- see
-! docs/reference.md). Optionally print a cross-solver comparison.
+! docs/README.md). Optionally print a cross-solver comparison.
 
 call solve_symmetric(solver, n2, f1, v1, d1)
 if (compare) call compare_solvers('F1 (symmetric family)', n2, f1)

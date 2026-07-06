@@ -30,9 +30,9 @@ OMEGA = 2.0 * np.pi / (24.0 * 3600.0)
 
 # paper colour / style cycle: blue solid, red dashed, green dotted
 STYLES = [
-    dict(color="#1f4fd8", ls="-", lw=1.8),
-    dict(color="#d81f1f", ls="--", lw=1.8),
-    dict(color="#1a8a2a", ls=":", lw=2.2),
+    dict(color="#1f4fd8", ls="-", lw=1.2),
+    dict(color="#d81f1f", ls="--", lw=1.2),
+    dict(color="#1a8a2a", ls=":", lw=1.5),
 ]
 
 
@@ -48,7 +48,7 @@ def read_case(filename, s):
     theta_u(nlat,nn) ; theta_v(nlat,nn) -- lambda/theta/theta_u/theta_v pack
     the symmetric family into columns [0:n2) and the anti-symmetric family
     into columns [n2:nn), each sorted by descending eigenvalue (Jacobi
-    convention -- see docs/reference.md).
+    convention -- see docs/README.md).
     """
     path = os.path.join(OUTPUT_DIR, filename)
     with FortranFile(path, "r") as f:
@@ -95,12 +95,25 @@ def _split(family):
     return inf, pos, neg
 
 
-def _plot_panel(ax, x, cols, labels, tag, ylim=None, normalize=False):
+# Fixed per-mode divisors for the wind panels (compare_hough_uv.ncl
+# convention): the k-th mode of a family is divided by ~its L2-normalized peak
+# amplitude, so the family is shown at consistent relative scale. The ALP
+# solver is L2-normalized by construction, so these apply directly.
+WIND_DIVISORS = [3.0, 9.0, 16.0]
+
+
+def _plot_panel(ax, x, cols, labels, tag, ylim=None, normalize=False,
+                divisors=None):
     lat = latitude(x)
     order = np.argsort(lat)
     lat = lat[order]
-    for col, lab, st in zip(cols, labels, STYLES):
-        y = col / np.max(np.abs(col)) if normalize else col   # unit peak (winds)
+    for i, (col, lab, st) in enumerate(zip(cols, labels, STYLES)):
+        if divisors is not None:
+            y = col / divisors[i]                    # fixed family divisor
+        elif normalize:
+            y = col / np.max(np.abs(col))            # unit peak
+        else:
+            y = col
         ax.plot(lat, y[order], label=lab, **st)
     ax.axhline(0, color="0.6", lw=0.6)
     ax.set_xlim(-90, 90)
@@ -123,7 +136,7 @@ def figure1():
     _, sp, sn = _split(sym)
     ai, ap, an = _split(anti)
 
-    fig, ax = plt.subplots(2, 2, figsize=(10, 7))
+    fig, ax = plt.subplots(2, 2, figsize=(7, 5))
 
     # (a) symmetric: [-1] [+1] [+3]
     _plot_panel(ax[0, 0], sym["x"],
@@ -142,7 +155,7 @@ def figure1():
                 [anti["hough"][:, ai[0]], anti["hough"][:, an[0]], anti["hough"][:, an[1]]],
                 ["[0]", "[-2]", "[-4]"], "d")
 
-    fig.suptitle(r"Figure 1.  DW1 Hough modes  ($s=1,\ \sigma=0.5$)  -- Fortran solver")
+    fig.suptitle(r"Figure 1.  DW1 Hough modes  ($s=1,\ \sigma=0.5$)  -- Fortran solver", fontsize=9)
     fig.tight_layout(rect=[0, 0, 1, 0.97])
     return _save(fig, "fig1_dw1.png")
 
@@ -158,26 +171,27 @@ def figure2():
     ad = anti["degree"][ap]       # degrees 3,5,7
     slab = [f"[2,{d}]" for d in sd]
     alab = [f"[2,{d}]" for d in ad]
+    # wind labels carry the divisor, e.g. [2,2]/3 (as in the paper's Fig 2)
+    slab_w = [f"[2,{d}]/{int(v)}" for d, v in zip(sd, WIND_DIVISORS)]
+    alab_w = [f"[2,{d}]/{int(v)}" for d, v in zip(ad, WIND_DIVISORS)]
 
-    fig, ax = plt.subplots(3, 2, figsize=(10, 10))
+    fig, ax = plt.subplots(3, 2, figsize=(7, 7.5))
     # (a,b) scalar
     _plot_panel(ax[0, 0], sym["x"], [sym["hough"][:, i] for i in sp], slab, "a")
     _plot_panel(ax[0, 1], anti["x"], [anti["hough"][:, i] for i in ap], alab, "b")
-    # (c,d) zonal wind u   (normalized to unit peak, as in the paper)
-    _plot_panel(ax[1, 0], sym["x"], [sym["hough_u"][:, i] for i in sp], slab, "c",
-                normalize=True)
-    _plot_panel(ax[1, 1], anti["x"], [anti["hough_u"][:, i] for i in ap], alab, "d",
-                normalize=True)
+    # (c,d) zonal wind u   (divided by the fixed family factors 3, 9, 16)
+    _plot_panel(ax[1, 0], sym["x"], [sym["hough_u"][:, i] for i in sp], slab_w, "c",
+                divisors=WIND_DIVISORS)
+    _plot_panel(ax[1, 1], anti["x"], [anti["hough_u"][:, i] for i in ap], alab_w, "d",
+                divisors=WIND_DIVISORS)
     # (e,f) meridional wind v  (parity flips: v of symmetric scalar is anti, etc.)
-    _plot_panel(ax[2, 0], sym["x"], [sym["hough_v"][:, i] for i in sp], slab, "e",
-                normalize=True)
-    _plot_panel(ax[2, 1], anti["x"], [anti["hough_v"][:, i] for i in ap], alab, "f",
-                normalize=True)
+    _plot_panel(ax[2, 0], sym["x"], [sym["hough_v"][:, i] for i in sp], slab_w, "e",
+                divisors=WIND_DIVISORS)
+    _plot_panel(ax[2, 1], anti["x"], [anti["hough_v"][:, i] for i in ap], alab_w, "f",
+                divisors=WIND_DIVISORS)
 
-    for a, t in zip(ax[:, 0], ["scalar", "zonal wind u", "merid. wind v"]):
-        a.set_ylabel(t, fontsize=9)
     fig.suptitle(r"Figure 2.  SW2 Hough modes  ($s=2,\ \sigma=1$)  -- Fortran solver"
-                 "   left: symmetric   right: anti-symmetric")
+                 "   left: symmetric   right: anti-symmetric", fontsize=9)
     fig.tight_layout(rect=[0, 0, 1, 0.97])
     return _save(fig, "fig2_sw2.png")
 
@@ -189,13 +203,13 @@ def figure3():
     _, ap, _ = _split(anti)
     sp, ap = sp[:3], ap[:3]
 
-    fig, ax = plt.subplots(1, 2, figsize=(10, 4))
+    fig, ax = plt.subplots(1, 2, figsize=(7, 3))
     _plot_panel(ax[0], sym["x"], [sym["hough"][:, i] for i in sp],
                 [f"[3,{d}]" for d in sym["degree"][sp]], "a")
     _plot_panel(ax[1], anti["x"], [anti["hough"][:, i] for i in ap],
                 [f"[3,{d}]" for d in anti["degree"][ap]], "b")
     fig.suptitle(r"Figure 3.  TW3 Hough modes  ($s=3,\ \sigma=1.5$)  -- Fortran solver"
-                 "   left: symmetric   right: anti-symmetric")
+                 "   left: symmetric   right: anti-symmetric", fontsize=9)
     fig.tight_layout(rect=[0, 0, 1, 0.94])
     return _save(fig, "fig3_tw3.png")
 

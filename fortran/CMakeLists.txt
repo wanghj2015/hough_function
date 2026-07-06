@@ -21,6 +21,7 @@ add_executable(hough_main
   src/hough_main.f90
   src/hough_mode.f90
   src/hough_mode_uv.f90
+  src/theta_to_theta_uv.f90
   src/eigensolvers.f90
   src/jacobi_eigenvalue.f90
   src/legendre_polynomial_sub.f90

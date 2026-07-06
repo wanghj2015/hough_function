@@ -93,7 +93,7 @@ def jacobi_eigenvalue(a_in, it_max=100):
     gauge is what reproduces the published PDF's curve signs -- verified
     against every mode in Figs. 1-3 by pixel-level digitization of the paper
     -- whereas eig/eigh's gauge only sometimes agrees with it. See
-    docs/reference.md.
+    docs/README.md.
 
     Returns (eigenvalues, eigenvectors) with eigenvectors as columns,
     unsorted (same convention as numpy.linalg.eigh).

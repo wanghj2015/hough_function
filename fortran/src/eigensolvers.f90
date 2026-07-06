@@ -10,7 +10,7 @@ module eigensolvers
 ! Sect. 2.1) cites, and which this code uses as the default solver. Jacobi
 ! rotations and library routines (LAPACK's QR-based dsyev/dsyevd or the
 ! tridiagonal-specific dstev) agree on eigenvalues but pick different,
-! equally valid sign gauges for the eigenvectors -- see docs/reference.md.
+! equally valid sign gauges for the eigenvectors -- see docs/README.md.
 
 implicit none
 private

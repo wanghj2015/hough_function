@@ -3,6 +3,13 @@
 Python port of cheb_hough.m from:
 Wang, H., Boyd, J. P., & Akmaev, R. A. (2016). On computation of Hough
 functions. Geoscientific Model Development, 9(4), 1477-1488.
+
+Note (extension over the MATLAB source): each scalar mode is L2-normalized
+(int hough^2 dx = 1) so that the modes -- and the winds derived from them --
+share the same physical amplitude as the nalp solver. The MATLAB cheb_hough.m
+leaves the raw eig() eigenvectors (unit Euclidean norm on the grid, an
+arbitrary scale); nalp is L2-normalized by construction (orthonormal ALPs),
+so without this step the two solvers' wind amplitudes would not match.
 """
 
 from collections import namedtuple
@@ -58,6 +65,17 @@ def compute(s=1.0, sigma=0.5, N=62):
     ii = np.argsort(-lamb)
     lamb = lamb[ii]
     hough = np.real(v[:, ii])
+
+    # L2-normalize each mode so that int_{-1}^{1} hough^2 dx = 1, matching the
+    # nalp solver. (nalp expands in orthonormal ALPs, so its unit-norm
+    # eigenvector coefficients already give an L2-normalized function by
+    # Parseval; the Chebyshev eigenvectors are only unit *Euclidean* norm on
+    # the grid, an arbitrary scale.) Normalizing the scalar here puts both
+    # solvers' scalar modes -- and the winds derived from them below -- on the
+    # same physical amplitude. The integral uses the Chebyshev-Gauss weights
+    # for the collocation nodes x = cos(t):  int f dx ~ (pi/N) sum f sqrt(1-x^2).
+    w_cg = (np.pi / N) * np.sqrt(1.0 - x ** 2)
+    hough = hough / np.sqrt(w_cg @ hough ** 2)
 
     # equivalent depth (km)
     h = -4.0 * A_EARTH ** 2 * OMEGA ** 2 / G / lamb / 1000.0

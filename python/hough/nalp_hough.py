@@ -91,7 +91,7 @@ def compute(s=1, sigma=0.5, N=62, nlat=94):
     # (Burkardt 2013), not a generic LAPACK eig/eigh call: the two give the
     # same eigenvalues but a different (still valid) eigenvector sign gauge,
     # and only the Jacobi gauge reproduces the published figures. See
-    # docs/reference.md.
+    # docs/README.md.
     lamb1, v1 = jacobi_eigenvalue(f1)
     ii = np.argsort(-lamb1)
     lamb1 = lamb1[ii]
@@ -232,7 +232,7 @@ def solve_parity(s=1, sigma=0.5, N=62, nlat=94):
         # -- which build the eigenvectors explicitly from the identity
         # through a deterministic sequence of plane rotations -- reproduce
         # the paper's sign for essentially every mode checked by pixel-level
-        # digitization of Figs. 1-3. See docs/reference.md.
+        # digitization of Figs. 1-3. See docs/README.md.
         lamb, v = jacobi_eigenvalue(fmat)
         order = np.argsort(-lamb)
         lamb, v = lamb[order], v[:, order]
