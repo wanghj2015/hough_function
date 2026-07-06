@@ -24,8 +24,8 @@ keywords:
   - associated Legendre polynomials
   - equivalent depth
 license: CC-BY-4.0
-version: 1.0.0
-date-released: '2026-07-04'
+version: 1.1.0
+date-released: '2026-07-06'
 doi: 10.5281/zenodo.21201407
 preferred-citation:
   type: article
