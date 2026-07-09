@@ -46,19 +46,14 @@ def select(sym, branch):
     return pos[0] if branch == "pos" else neg[0]
 
 
-def scale_pair(u, v, lat, divisor, positive_lobe):
-    """Divide the (L2-normalized) U, V by a fixed factor and fix the sign gauge.
+def scale_pair(u, v, divisor):
+    """Divide the (L2-normalized) U, V by a fixed factor.
 
-    An eigenvector has no intrinsic sign, so we pin a reproducible convention:
-    sample U at 45N and flip if it disagrees with `positive_lobe` (propagating
-    (2,2) -> positive, trapped (1,-1) -> negative). U and V flip together --
-    they share one scalar mode, so the overall sign is a shared gauge while the
-    relative sign is physical.
+    An eigenvector has no intrinsic sign, and we keep whatever sign the solver
+    returns rather than forcing a convention. U and V share one scalar mode, so
+    their relative sign is physical and preserved either way.
     """
-    u, v = u / divisor, v / divisor
-    if (u[np.argmin(np.abs(lat - 45.0))] > 0) != positive_lobe:
-        u, v = -u, -v
-    return u, v
+    return u / divisor, v / divisor
 
 
 def main():
@@ -72,8 +67,7 @@ def main():
         lat = lat[order]
         u = sym["hough_u"][:, col][order]
         v = sym["hough_v"][:, col][order]
-        u, v = scale_pair(u, v, lat, m["divisor"],
-                          positive_lobe=(m["branch"] == "pos"))
+        u, v = scale_pair(u, v, m["divisor"])
         d = int(m["divisor"])
         ax.plot(lat, u, color=m["color"], lw=2, label=rf"$U[{m['tag']}]/{d}$")
         ax.plot(lat, v, color=m["color"], lw=2, ls="--",

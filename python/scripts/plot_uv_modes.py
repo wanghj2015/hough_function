@@ -44,6 +44,7 @@ SPURIOUS_KM = 1.0e6
 # negative. "divisor" is the fixed factor each L2-normalized u/v is divided by
 # (~ its peak amplitude), shown in the label -- SW2 /3, DW1 /10 -- so both sit
 # near unit peak while the true relative size stays recoverable from the label.
+# The eigenvector sign is left as the solver returns it (no force-flip).
 MODES = [
     dict(s=2, sigma=1.0, branch="propagating", divisor=3.0,  color="#1f4fd8", tag="2,2"),  # SW2
     dict(s=1, sigma=0.5, branch="trapped",     divisor=10.0, color="#d81f1f", tag="1,-1"), # DW1
@@ -70,21 +71,16 @@ def profiles(r, col):
     return lat[order], u, v
 
 
-def scale_pair(u, v, lat, divisor, positive_lobe):
-    """Divide a mode's (L2-normalized) U, V by a fixed factor and fix its sign.
+def scale_pair(u, v, divisor):
+    """Divide a mode's (L2-normalized) U, V by a fixed factor.
 
     An eigenvector has no intrinsic sign (a mode and its negative are the same
-    mode), and the Chebyshev eig() returns an arbitrary one -- so we pin a
-    reproducible convention: sample U at 45N and flip if its sign disagrees
-    with `positive_lobe` (propagating (2,2) -> positive lobe, trapped (1,-1)
-    -> negative). U and V are flipped *together*, never independently: both
-    are linear in the same scalar mode, so their overall sign is one shared
-    gauge while their relative sign is physical.
+    mode), and the Chebyshev eig() returns an arbitrary one. We keep whatever
+    sign the solver returns rather than forcing a convention: U and V share the
+    same scalar mode, so their relative sign is physical and preserved either
+    way.
     """
-    u, v = u / divisor, v / divisor
-    if (u[np.argmin(np.abs(lat - 45.0))] > 0) != positive_lobe:
-        u, v = -u, -v
-    return u, v
+    return u / divisor, v / divisor
 
 
 def main():
@@ -93,8 +89,7 @@ def main():
         r = cheb_hough.compute(s=m["s"], sigma=m["sigma"])
         col = select_mode(r, m["branch"])
         lat, u, v = profiles(r, col)
-        u, v = scale_pair(u, v, lat, m["divisor"],
-                          positive_lobe=(m["branch"] == "propagating"))
+        u, v = scale_pair(u, v, m["divisor"])
         d = int(m["divisor"])
         ax.plot(lat, u, color=m["color"], lw=2,
                 label=rf"$U[{m['tag']}]/{d}$")
